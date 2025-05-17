@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "ddr_tool_util.h": "c",
+        "stm32mp_util_def.h": "c",
+        "stm32mp2xx_hal.h": "c"
+    }
+}

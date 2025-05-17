@@ -53,13 +53,9 @@ typedef enum
   VDD_EMMC,
   V1V8,
   VDD3V3_USB,
-  VDD_DDR,
-  VREF_DDR,
-  VTT_DDR,
-  VPP_DDR,
-  VDD_SDCARD,
-  VDDIO_SDCARD,
-  V3V3
+  VDD1_DDR,
+  VDD2_DDR,
+  V3V3,
 } board_regul_t;
 
 typedef struct

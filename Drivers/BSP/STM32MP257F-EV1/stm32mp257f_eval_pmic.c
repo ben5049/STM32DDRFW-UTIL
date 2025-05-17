@@ -94,7 +94,7 @@ board_regul_struct_t board_regulators_table[] =
   },
   {
     "VDDIO_PMIC",  VDDIO_PMIC,  STPMIC_BUCK4,  BUCK4_MAIN_CR1,  BUCK4_MAIN_CR2,  \
-    BUCK4_ALT_CR1,  BUCK4_ALT_CR2,  BUCK4_PWRCTRL_CR,  3300, 3300
+    BUCK4_ALT_CR1,  BUCK4_ALT_CR2,  BUCK4_PWRCTRL_CR,  1800, 1800
   },
   {
     "VDDA1V8_AON", VDDA1V8_AON, STPMIC_LDO1,   LDO1_MAIN_CR,    LDO1_MAIN_CR,    \
@@ -113,28 +113,12 @@ board_regul_struct_t board_regulators_table[] =
     LDO4_ALT_CR,    LDO4_ALT_CR,    LDO4_PWRCTRL_CR,   3300, 3300
   },
   {
-    "VDD_DDR",     VDD_DDR,     STPMIC_BUCK6,  BUCK6_MAIN_CR1,  BUCK6_MAIN_CR2,  \
-    BUCK6_ALT_CR1,  BUCK6_ALT_CR2,  BUCK6_PWRCTRL_CR,  1200, 1200
+    "VDD2_DDR",    VDD2_DDR,    STPMIC_BUCK6,  BUCK6_MAIN_CR1,  BUCK6_MAIN_CR2,  BUCK6_ALT_CR1,
+    BUCK6_ALT_CR2, BUCK6_PWRCTRL_CR,  1100, 1100
   },
   {
-    "VREF_DDR",    VREF_DDR,    STPMIC_REFDDR, REFDDR_MAIN_CR,  REFDDR_MAIN_CR,  \
-    REFDDR_ALT_CR,  REFDDR_ALT_CR,  REFDDR_PWRCTRL_CR, 0000, 0000
-  },
-  {
-    "VTT_DDR",     VTT_DDR,     STPMIC_LDO3,   LDO3_MAIN_CR,    LDO3_MAIN_CR,    \
-    LDO3_ALT_CR,    LDO3_ALT_CR,    LDO3_PWRCTRL_CR,   0000, 0000
-  },
-  {
-    "VPP_DDR",     VPP_DDR,     STPMIC_LDO5,   LDO5_MAIN_CR,    LDO5_MAIN_CR,    \
-    LDO5_ALT_CR,    LDO5_ALT_CR,    LDO5_PWRCTRL_CR,   2500, 2500
-  },
-  {
-    "VDD_SDCARD",  VDD_SDCARD,  STPMIC_LDO7,   LDO7_MAIN_CR,    LDO7_MAIN_CR,    \
-    LDO7_ALT_CR,    LDO7_ALT_CR,    LDO7_PWRCTRL_CR,   1800, 3300
-  },
-  {
-    "VDDIO_SDCARD", VDDIO_SDCARD, STPMIC_LDO8,   LDO8_MAIN_CR,    LDO8_MAIN_CR,  \
-    LDO8_ALT_CR,    LDO8_ALT_CR,    LDO8_PWRCTRL_CR,   3300, 3300
+    "VDD1_DDR",    VDD1_DDR,    STPMIC_LDO3,   LDO3_MAIN_CR,    LDO3_MAIN_CR,    LDO3_ALT_CR,
+    LDO3_ALT_CR, LDO3_PWRCTRL_CR,   0000, 0000
   },
   {
     "V3V3",        V3V3,        STPMIC_BUCK7,  BUCK7_MAIN_CR1,  BUCK7_MAIN_CR2,  \
@@ -360,26 +344,14 @@ uint32_t BSP_PMIC_DDR_Power_Init()
 {
   uint32_t  status = BSP_ERROR_NONE;
 
-  /* vpp_ddr ==> LDO5 ==> 2500mV */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].control_reg1, 0x1E) != BSP_ERROR_NONE)
+  /* VDD2_DDR ==> BUCK6 ==> 1100mV */
+  if (BSP_PMIC_WriteReg(board_regulators_table[VDD2_DDR].control_reg1, 0x3C) != BSP_ERROR_NONE)
   {
     return BSP_ERROR_PMIC;
   }
 
-  /* vdd_ddr ==> BUCK6 ==> 1200mV */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg1, 0x46) != BSP_ERROR_NONE)
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  /* vtt_ddr ==> enable flag SINK_SOURCE ==> LDO3 ==> 900mV */
-  if (BSP_PMIC_UpdateReg(board_regulators_table[VTT_DDR].control_reg1, 0x80) != BSP_ERROR_NONE)
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  /* enable vpp_ddr */
-  if (BSP_PMIC_UpdateReg(board_regulators_table[VPP_DDR].control_reg1, 0x1) != BSP_ERROR_NONE)
+  /* VDD1_DDR ==> LDO3 ==> 1800mV */
+  if (BSP_PMIC_UpdateReg(board_regulators_table[VDD1_DDR].control_reg1, (0x9 << 1)) != BSP_ERROR_NONE)
   {
     return BSP_ERROR_PMIC;
   }
@@ -390,23 +362,24 @@ uint32_t BSP_PMIC_DDR_Power_Init()
   HAL_Delay(2);
 #endif /* __AARCH64__ */
 
-  /* enable vdd_ddr */
-  if (BSP_PMIC_UpdateReg(board_regulators_table[VDD_DDR].control_reg2, 0x1 != BSP_ERROR_NONE))
+  /* enable VTT_DDR/VDD1_DDR */
+  if (BSP_PMIC_UpdateReg(board_regulators_table[VDD1_DDR].control_reg1, 0x1) != BSP_ERROR_NONE)
   {
     return BSP_ERROR_PMIC;
   }
 
-  /* enable vref_ddr */
-  if (BSP_PMIC_UpdateReg(board_regulators_table[VREF_DDR].control_reg1, 0x1 != BSP_ERROR_NONE))
+#ifdef __AARCH64__
+    bsp_pmic_delay_us(2UL);
+#else /* __AARCH64__ */
+  HAL_Delay(2);
+#endif /* __AARCH64__ */
+
+  /* enable vdd2_ddr (1100mV) ==> BUCK6 */
+  if (BSP_PMIC_UpdateReg(board_regulators_table[VDD2_DDR].control_reg2, 0x1 != BSP_ERROR_NONE))
   {
     return BSP_ERROR_PMIC;
   }
 
-  /* enable vtt_ddr */
-  if (BSP_PMIC_UpdateReg(board_regulators_table[VTT_DDR].control_reg1, 0x1) != BSP_ERROR_NONE)
-  {
-    return BSP_ERROR_PMIC;
-  }
 
   return status;
 }
@@ -420,12 +393,8 @@ uint32_t BSP_PMIC_REGU_Set_On(board_regul_t regu)
   {
     case VDDA1V8_AON:
     case VDD_EMMC:
-    case VTT_DDR:
+    case VDD1_DDR:
     case VDD3V3_USB:
-    case VPP_DDR:
-    case VDD_SDCARD:
-    case VDDIO_SDCARD:
-    case VREF_DDR:
       /* set enable bit */
       if (BSP_PMIC_UpdateReg(board_regulators_table[regu].control_reg1, MAIN_CR_EN) != BSP_ERROR_NONE)
       {
@@ -437,13 +406,13 @@ uint32_t BSP_PMIC_REGU_Set_On(board_regul_t regu)
     case VDDGPU:
     case VDDIO_PMIC:
     case V1V8:
-    case VDD_DDR:
+    case VDD2_DDR:
     case V3V3:
       /* Forbid VDDGPU to be set on if VDDCORE is not enabled */
       if (regu == VDDGPU)
       {
-        if (BSP_PMIC_ReadReg(board_regulators_table[VDDCORE].control_reg2, &data) != \
-            BSP_ERROR_NONE) /* read control reg */
+        /* read control reg */
+        if (BSP_PMIC_ReadReg(board_regulators_table[VDDCORE].control_reg2, &data) != BSP_ERROR_NONE)
         {
           return BSP_ERROR_PMIC;
         }
@@ -460,7 +429,7 @@ uint32_t BSP_PMIC_REGU_Set_On(board_regul_t regu)
       }
       break;
     default:
-      status = BSP_ERROR_WRONG_PARAM ;
+      status = BSP_ERROR_NONE; //BSP_ERROR_WRONG_PARAM ;
       break;
   }
 
@@ -476,12 +445,8 @@ uint32_t BSP_PMIC_REGU_Set_Off(board_regul_t regu)
   {
     case VDDA1V8_AON:
     case VDD_EMMC:
-    case VTT_DDR:
+    case VDD1_DDR:
     case VDD3V3_USB:
-    case VPP_DDR:
-    case VDD_SDCARD:
-    case VDDIO_SDCARD:
-    case VREF_DDR:
       /* disable ==> clear enable bit */
       if (BSP_PMIC_ReadReg(board_regulators_table[regu].control_reg1,
                            &data) != BSP_ERROR_NONE) /* read control reg to save data */
@@ -501,7 +466,7 @@ uint32_t BSP_PMIC_REGU_Set_Off(board_regul_t regu)
     case VDDGPU:
     case VDDIO_PMIC:
     case V1V8:
-    case VDD_DDR:
+    case VDD2_DDR:
     case V3V3:
       /* disable ==> clear enable bit */
       if (BSP_PMIC_ReadReg(board_regulators_table[regu].control_reg2,
@@ -518,7 +483,7 @@ uint32_t BSP_PMIC_REGU_Set_Off(board_regul_t regu)
       }
       break;
     default:
-      status = BSP_ERROR_WRONG_PARAM ;
+      status = BSP_ERROR_NONE; //BSP_ERROR_WRONG_PARAM ;
       break;
   }
 
@@ -530,59 +495,29 @@ uint32_t BSP_PMIC_DDR_Power_Off()
   uint32_t  status = BSP_ERROR_NONE;
   uint8_t data;
 
-  /* disable vpp_ddr */
-  if (BSP_PMIC_ReadReg(board_regulators_table[VPP_DDR].control_reg1,
-                       &data) != BSP_ERROR_NONE) /* read control reg to save data */
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  data &= ~MAIN_CR_EN; /* clear enable bit */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].control_reg1,
-                        data) != BSP_ERROR_NONE) /* write control reg to clear enable bit */
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  HAL_Delay(2);
-
   /* disable vdd_ddr */
-  if (BSP_PMIC_ReadReg(board_regulators_table[VDD_DDR].control_reg2,
+  if (BSP_PMIC_ReadReg(board_regulators_table[VDD2_DDR].control_reg2,
                        &data) != BSP_ERROR_NONE) /* read control reg to save data */
   {
     return BSP_ERROR_PMIC;
   }
 
   data &= ~MAIN_CR_EN; /* clear enable bit */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg2,
-                        data) != BSP_ERROR_NONE) /* write control reg to clear enable bit */
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  /* disable vref_ddr */
-  if (BSP_PMIC_ReadReg(board_regulators_table[VREF_DDR].control_reg1,
-                       &data) != BSP_ERROR_NONE) /* read control reg to save data */
-  {
-    return BSP_ERROR_PMIC;
-  }
-
-  data &= ~MAIN_CR_EN; /* clear enable bit */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].control_reg1,
+  if (BSP_PMIC_WriteReg(board_regulators_table[VDD2_DDR].control_reg2,
                         data) != BSP_ERROR_NONE) /* write control reg to clear enable bit */
   {
     return BSP_ERROR_PMIC;
   }
 
   /* disable vtt_ddr */
-  if (BSP_PMIC_ReadReg(board_regulators_table[VTT_DDR].control_reg1,
+  if (BSP_PMIC_ReadReg(board_regulators_table[VDD1_DDR].control_reg1,
                        &data) != BSP_ERROR_NONE) /* read control reg to save data */
   {
     return BSP_ERROR_PMIC;
   }
 
   data &= ~MAIN_CR_EN; /* clear enable bit */
-  if (BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].control_reg1,
+  if (BSP_PMIC_WriteReg(board_regulators_table[VDD1_DDR].control_reg1,
                         data) != BSP_ERROR_NONE) /* write control reg to clear enable bit */
   {
     return BSP_ERROR_PMIC;
@@ -634,524 +569,14 @@ uint32_t BSP_PMIC_DDR_Power_Off()
 uint32_t BSP_PMIC_Power_Mode_Init()
 {
   uint32_t  status = BSP_ERROR_NONE;
-
-  /* Fail-safe overcurrent protection */
-  status = BSP_PMIC_WriteReg(FS_OCP_CR1, FS_OCP_REFDDR | FS_OCP_BUCK6 | FS_OCP_BUCK5 \
-                             | FS_OCP_BUCK4 | FS_OCP_BUCK2 | FS_OCP_BUCK1);
-  status = BSP_PMIC_WriteReg(FS_OCP_CR2, FS_OCP_LDO5 | FS_OCP_LDO3 | FS_OCP_LDO1);
-
-  /* Mask reset LDO control register (LDOS_MRST_CR) for VDDA1V8_AON (LDO1) */
-  status = BSP_PMIC_WriteReg(LDOS_MRST_CR, LDO1_MRST);
-
-  /* Mask reset BUCK control register (BUCKS_MRST_CR) for VDDIO (BUCK4) */
-  status = BSP_PMIC_WriteReg(BUCKS_MRST_CR, BUCK4_MRST);
-
-  /* for VBAT issue */
-  /* Mask reset BUCK control register (BUCKS_MRST_CR) for VDDCPU (BUCK1), VDDCORE (BUCK2), VDDIO (BUCK4) */
-  status = BSP_PMIC_WriteReg(BUCKS_MRST_CR, BUCK1_MRST | BUCK2_MRST | BUCK4_MRST);
-
-  /* VDDA1V8_AON: LDO1, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=0, Msk_Rst=1, Source=VOUT4, V=N/A, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDA1V8_AON].control_reg1, \
-                             MAIN_CR_INPUT_SRC_VOUT4 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDA1V8_AON].pwr_control_reg, \
-                             PWRCTRL_CR_SEL0 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0);
-  /* VDD_EMMC: LDO2, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=3.3, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_EMMC].control_reg1, \
-                             (0x18 << 1) | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_EMMC].pwr_control_reg, \
-                             PWRCTRL_CR_SEL3 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_RST);
-  /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=SINK_SOURCE, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].control_reg1, \
-                             MAIN_CR_SNK_SRC | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDD3V3_USB: LDO4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD3V3_USB].control_reg1, \
-                             MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD3V3_USB].pwr_control_reg, 0x0);
-  /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].control_reg1, \
-                             (0x10 << 1) | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDD_SDCARD: LDO7, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=BYPASS, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_SDCARD].control_reg1, \
-                             MAIN_CR_BYPASS | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_SDCARD].pwr_control_reg, \
-                             PWRCTRL_CR_SEL3 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_RST);
-  /* VDDIO_SDCARD: LDO8, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=BYPASS/1.8, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_SDCARD].control_reg1, \
-                             (0x9 << 1) | MAIN_CR_BYPASS | MAIN_CR_EN); 
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_SDCARD].pwr_control_reg, \
-                             PWRCTRL_CR_SEL3 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_RST);
-  /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].control_reg1, \
-                             MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.91, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].control_reg1, 0x1E); /* 0x1E ==> V=0.8V, 0x29 ==> V=0.91 */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  /* Add for multiple standby issue */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].pwr_control_reg, \
-                             PWRCTRL_CR_SEL2 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.82, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].control_reg1, 0x20);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDDGPU: BUCK3, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.9, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDGPU].control_reg1, 0x1E); /* 0x1E ==> V=0.8V, 0x28 ==> V=0.9 */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDGPU].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDGPU].pwr_control_reg, \
-                             PWRCTRL_CR_SEL0 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0);
-  /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-  PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].control_reg1, 0x76);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].pwr_control_reg, \
-                             PWRCTRL_CR_SEL0 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0);
-  /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].control_reg1, 0x67);
-  status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg1, 0x46);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-  /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-  PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-  status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].control_reg1, 0x76);
-  status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].control_reg2, \
-                             MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-  status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].pwr_control_reg, \
-                             PWRCTRL_CR_SEL1 | PWRCTRL_CR_DLY_H0 | PWRCTRL_CR_DLY_L0 | PWRCTRL_CR_EN);
-
   return status;
 }
-
-uint32_t BSP_PMIC_Set_Power_Mode(uint32_t mode)
+uint32_t BSP_PMIC_Set_Power_Mode(__attribute__((unused))uint32_t mode)
 {
   uint32_t  status = BSP_ERROR_NONE;
-  uint8_t data;
-
-  switch (mode)
-  {
-    case STPMIC2_RUN1_STOP1:
-      /* VDD_EMMC: LDO2, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=3.3, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_EMMC].control_reg1, \
-                                 (0x18 << 1) | MAIN_CR_EN);
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=SINK_SOURCE, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].control_reg1, \
-                                 MAIN_CR_SNK_SRC | MAIN_CR_EN);
-      /* VDD3V3_USB: LDO4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD3V3_USB].control_reg1, \
-                                 MAIN_CR_EN);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VDD_SDCARD: LDO7, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=BYPASS, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_SDCARD].control_reg1, \
-                                 MAIN_CR_BYPASS | MAIN_CR_EN);
-      /* VDDIO_SDCARD: LDO8, PWRCTRL_SEL=3, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=1, Msk_Rst=0, Source=NA, V=BYPASS/1.8, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_SDCARD].control_reg1, \
-                                 (0x9 << 1) | MAIN_CR_BYPASS | MAIN_CR_EN); 
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].control_reg1, \
-                                 MAIN_CR_EN);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.91, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].control_reg1, \
-                                 0x1E); /* 0x1E ==> V=0.8V, 0x29 ==> V=0.91 */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.82, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].control_reg1, \
-                                 0x20);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDGPU: BUCK3, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.9, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDGPU].control_reg1, \
-                                 0x1E); /* 0x1E ==> V=0.8V, 0x28 ==> V=0.9 */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDGPU].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].control_reg1, \
-                                 0x67);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg1, \
-                                 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_RUN2_STOP2:
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, 0x0);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_LP_STOP1:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=SINK_SOURCE, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, \
-                                 MAIN_CR_SNK_SRC);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, \
-                                 MAIN_CR_EN);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, \
-                                 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.91, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, \
-                                 0x1E);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0,82, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, \
-                                 0x20);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, \
-                                 0x67);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, \
-                                 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_LP_STOP2:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, \
-                                 0x0);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, \
-                                 MAIN_CR_EN);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, \
-                                 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, \
-                                 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, \
-                                 0x0);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.82, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, \
-                                 0x20);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, \
-                                 0x67);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, \
-                                 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, \
-                                 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_LPLV_STOP1:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=SINK_SOURCE, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, \
-                                 0x0);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, \
-                                 MAIN_CR_EN);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.8/0.91, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, 0x1E);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0,67, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, 0x11);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, 0x67);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_LPLV_STOP2:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, 0x0);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, \
-                                 MAIN_CR_EN);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, 0x0);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=0.67, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, 0x11);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-      PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.8, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, 0x67);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=3.3, State=ON_HP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE0 | MAIN_CR_EN);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_STANDBY_DDR_SR:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, 0x0);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=2.5, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, \
-                                 (0x10 << 1) | MAIN_CR_EN);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=ON */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, MAIN_CR_EN);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, 0x0);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, 0x0);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-         PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_LP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE1 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, 0x0);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=1.2, State=ON_LP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, 0x46);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE1 | MAIN_CR_EN);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, 0x0);
-
-      /* STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 0 */
-      break;
-
-    case STPMIC2_STANDBY_DDR_OFF:
-      /* VTT_DDR: LDO3, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VTT_DDR].alt_control_reg1, 0x0);
-      /* VPP_DDR: LDO5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VPP_DDR].alt_control_reg1, 0x0);
-      /* VREF_DDR: REFDDR, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VREF_DDR].alt_control_reg2, 0x0);
-      /* VDDCPU: BUCK1, PWRCTRL_SEL=2, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCPU].alt_control_reg2, 0x0);
-      /* VDDCORE: BUCK2, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDCORE].alt_control_reg2, 0x0);
-      /* VDDIO: BUCK4, PWRCTRL_SEL=0, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=0,
-         PWRCTRL_RST=0, Msk_Rst=1, Source=NA, V=3.3, State=ON_LP */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg1, 0x76);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDDIO_PMIC].alt_control_reg2, \
-                                 MAIN_CR_PREG_MODE1 | MAIN_CR_EN);
-      /* V1V8: BUCK5, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-      PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V1V8].alt_control_reg2, 0x0);
-      /* VDD_DDR: BUCK6, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=BNA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[VDD_DDR].alt_control_reg2, 0x0);
-      /* V3V3: BUCK7, PWRCTRL_SEL=1, PWRCTRL_DLY_H=0, PWRCTRL_DLY_L=0, PWRCTRL_EN=1,
-         PWRCTRL_RST=0, Msk_Rst=0, Source=NA, V=NA, State=OFF */
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg1, 0x0);
-      status = BSP_PMIC_WriteReg(board_regulators_table[V3V3].alt_control_reg2, 0x0);
-      /* STANDBY_PWRCTRL_SEL[1:0] = 1 */
-      status = BSP_PMIC_ReadReg(MAIN_CR, &data); /* read MAIN_CR to save data */
-      data &= ~STANDBY_PWRCTRL_SEL_3; /* clear STANDBY_PWRCTRL_SEL bits */
-      status = BSP_PMIC_WriteReg(MAIN_CR, data | \
-                                 STANDBY_PWRCTRL_SEL_1); /* write MAIN_CR to set STANDBY_PWRCTRL_SEL[1:0] = 1 */
-      break;
-
-    default :
-      status = BSP_ERROR_WRONG_PARAM;
-  }
-
   return status;
 }
+
 
 void STPMIC_Enable_Interrupt(PMIC_IRQn IRQn)
 {

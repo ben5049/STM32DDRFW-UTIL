@@ -1,0 +1,13 @@
+.settings
+.metadata
+
+*.d
+*.o
+
+*.list
+*.map
+*.bin
+*.elf
+*.stm32
+
+DDR_Tool/STM32MP257F-EV1/STM32MP257F-EV1_DDR_UTILITIES_A35/EV1/*

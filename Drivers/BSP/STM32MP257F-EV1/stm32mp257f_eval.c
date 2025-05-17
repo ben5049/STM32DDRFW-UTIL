@@ -4,7 +4,6 @@
   * @author  MCD Application Team
   * @brief   This file provides a set of firmware functions to manage
   *          LEDs
-  *          push-buttons
   *          COM ports
   *          available on STM32MP257F-EV1 board(MB170/4,5,6) from STMicroelectronics.
   ******************************************************************************
@@ -47,14 +46,8 @@ typedef void (* BSP_EXTI_LineCallback)(void);
   * @{
   */
 #if defined (CORE_CA35) || defined (CORE_CM33)
-static void BUTTON_WAKEUP_EXTI_Callback(void);
-static void BUTTON_USER1_EXTI_Callback(void);
-static void BUTTON_USER2_EXTI_Callback(void);
-static void BUTTON_TAMPER_EXTI_Callback(void);
 static int32_t BSP_LED_MspInit(Led_TypeDef Led);
 static int32_t BSP_LED_MspDeInit(Led_TypeDef Led);
-static int32_t BSP_PB_MspInit(Button_TypeDef Button);
-static int32_t BSP_PB_MspDeInit(Button_TypeDef Button);
 #endif /* CORE_CA35 || CORE_CM33 */
 #if (USE_BSP_COM_FEATURE > 0)
 static void USART_MspInit(UART_HandleTypeDef *huart);
@@ -67,7 +60,6 @@ static void USART_MspDeInit(UART_HandleTypeDef *huart);
 /** @defgroup LOW_LEVEL_Exported_Variables Exported Variables
   * @{
   */
-EXTI_HandleTypeDef hpb_exti[BUTTONn];
 #if (USE_BSP_COM_FEATURE > 0)
 UART_HandleTypeDef hcom_uart[COMn];
 USART_TypeDef *COM_USART[COMn] =
@@ -89,51 +81,22 @@ USART_TypeDef *COM_USART[COMn] =
   */
 #if defined (CORE_CA35) || defined (CORE_CM33)
 static GPIO_TypeDef *LED_PORT[LEDn] = { LED1_GPIO_PORT,
-                                        LED2_GPIO_PORT,
-                                        LED3_GPIO_PORT,
-                                        LED4_GPIO_PORT
+                                        LED2_GPIO_PORT
                                       };
 
 static const uint32_t LED_PIN[LEDn] = { LED1_PIN,
-                                        LED2_PIN,
-                                        LED3_PIN,
-                                        LED4_PIN
+                                        LED2_PIN
                                       };
 
 static const GPIO_PinState GPIO_LED_OFF[LEDn] = { GPIO_PIN_SET,
-                                                  GPIO_PIN_RESET,
-                                                  GPIO_PIN_RESET,
                                                   GPIO_PIN_RESET
                                                 };
 
 static const GPIO_PinState GPIO_LED_ON[LEDn] = { GPIO_PIN_RESET,
-                                                 GPIO_PIN_SET,
-                                                 GPIO_PIN_SET,
                                                  GPIO_PIN_SET
                                                };
 
 
-static GPIO_TypeDef *BUTTON_PORT[BUTTONn] =
-{
-  BUTTON_WAKEUP_GPIO_PORT,
-  BUTTON_USER1_GPIO_PORT,
-  BUTTON_USER2_GPIO_PORT,
-  BUTTON_TAMPER_GPIO_PORT
-};
-static const uint16_t BUTTON_PIN[BUTTONn] =
-{
-  BUTTON_WAKEUP_PIN,
-  BUTTON_USER1_PIN,
-  BUTTON_USER2_PIN,
-  BUTTON_TAMPER_PIN
-};
-static const IRQn_Type BUTTON_IRQn[BUTTONn] =
-{
-  BUTTON_WAKEUP_EXTI_IRQn,
-  BUTTON_USER1_EXTI_IRQn,
-  BUTTON_USER2_EXTI_IRQn,
-  BUTTON_TAMPER_EXTI_IRQn
-};
 #elif defined (CORE_CM0PLUS)
 #warning "Core M0 can't manage LED in eval Board"
 #endif /* CORE_CA35 || CORE_CM33*/
@@ -191,8 +154,6 @@ const uint8_t *BSP_GetBoardID(void)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval BSP status
   */
 int32_t BSP_LED_Init(Led_TypeDef Led)
@@ -225,8 +186,6 @@ int32_t BSP_LED_Init(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval BSP status
   */
 int32_t  BSP_LED_DeInit(Led_TypeDef Led)
@@ -255,8 +214,6 @@ int32_t  BSP_LED_DeInit(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval int32_t
   */
 static int32_t BSP_LED_MspInit(Led_TypeDef Led)
@@ -284,32 +241,13 @@ static int32_t BSP_LED_MspInit(Led_TypeDef Led)
       LED2_GPIO_CLK_ENABLE();
     }
   }
-  else if (Led == LED3 && !(LED3_GPIO_IS_CLK_ENABLED()))
-  {
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(99)))
-    {
-      LED3_GPIO_CLK_ENABLE();
-    }
-  }
-  else if (Led == LED4 && !(LED4_GPIO_IS_CLK_ENABLED()))
-  {
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(99)))
-    {
-      LED4_GPIO_CLK_ENABLE();
-    }
-  }
-
 
   if (!IS_DEVELOPER_BOOT_MODE())
   {
     if ((led == LED1_GPIO_PORT && pin == LED1_PIN
          && ResMgr_Request(LED1_GPIO_RIF_RES_TYP_GPIO, LED1_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
         || (led == LED2_GPIO_PORT && pin == LED2_PIN && \
-            ResMgr_Request(LED2_GPIO_RIF_RES_TYP_GPIO, LED2_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (led == LED3_GPIO_PORT && pin == LED3_PIN && \
-            ResMgr_Request(LED3_GPIO_RIF_RES_TYP_GPIO, LED3_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (led == LED4_GPIO_PORT && pin == LED4_PIN && \
-            ResMgr_Request(LED4_GPIO_RIF_RES_TYP_GPIO, LED4_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
+            ResMgr_Request(LED2_GPIO_RIF_RES_TYP_GPIO, LED2_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
     {
       ret = BSP_ERROR_MSP_FAILURE;
     }
@@ -323,8 +261,6 @@ static int32_t BSP_LED_MspInit(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval int32_t
   */
 static int32_t BSP_LED_MspDeInit(Led_TypeDef Led)
@@ -338,11 +274,7 @@ static int32_t BSP_LED_MspDeInit(Led_TypeDef Led)
     if ((led == LED1_GPIO_PORT && pin == LED1_PIN
          && ResMgr_Release(LED1_GPIO_RIF_RES_TYP_GPIO, LED1_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
         || (led == LED2_GPIO_PORT && pin == LED2_PIN && \
-            ResMgr_Release(LED2_GPIO_RIF_RES_TYP_GPIO, LED2_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (led == LED3_GPIO_PORT && pin == LED3_PIN && \
-            ResMgr_Release(LED3_GPIO_RIF_RES_TYP_GPIO, LED3_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (led == LED4_GPIO_PORT && pin == LED4_PIN && \
-            ResMgr_Release(LED4_GPIO_RIF_RES_TYP_GPIO, LED4_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
+            ResMgr_Release(LED2_GPIO_RIF_RES_TYP_GPIO, LED2_GPIO_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
     {
       ret = BSP_ERROR_MSP_FAILURE;
     }
@@ -356,8 +288,6 @@ static int32_t BSP_LED_MspDeInit(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval BSP status
   */
 int32_t  BSP_LED_On(Led_TypeDef Led)
@@ -374,8 +304,6 @@ int32_t  BSP_LED_On(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval BSP status
   */
 int32_t  BSP_LED_Off(Led_TypeDef Led)
@@ -391,8 +319,6 @@ int32_t  BSP_LED_Off(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval BSP status
   */
 int32_t  BSP_LED_Toggle(Led_TypeDef Led)
@@ -407,8 +333,6 @@ int32_t  BSP_LED_Toggle(Led_TypeDef Led)
   *          This parameter can be one of the following values:
   *            @arg  LED1
   *            @arg  LED2
-  *            @arg  LED3
-  *            @arg  LED4
   * @retval LED status
   */
 int32_t BSP_LED_GetState(Led_TypeDef Led)
@@ -418,270 +342,7 @@ int32_t BSP_LED_GetState(Led_TypeDef Led)
   return ret;
 }
 
-/**
-  * @brief  MspInit Buttons.
-  * @param  Button Button to be configured
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_WAKEUP: Wakeup Push Button
-  *            @arg  BUTTON_TAMPER: Tamper Push Button
-  *            @arg  BUTTON_USER1 : User1 Push Button
-  *            @arg  BUTTON_USER2 : User2 Push Button
-  * @retval int32_t
-  */
-static int32_t BSP_PB_MspInit(Button_TypeDef Button)
-{
-  int32_t ret = BSP_ERROR_NONE;
-  GPIO_TypeDef *button = BUTTON_PORT[Button];
-  uint16_t pin = BUTTON_PIN[Button];
 
-  /* Enable the BUTTON clock*/
-  if (Button == BUTTON_WAKEUP && !(BUTTON_WAKEUP_GPIO_IS_CLK_ENABLE()))
-  {
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(98)))
-    {
-      BUTTON_WAKEUP_GPIO_CLK_ENABLE();
-    }
-  }
-  else if (Button == BUTTON_TAMPER && !(BUTTON_TAMPER_GPIO_IS_CLK_ENABLE()))
-  {
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(98)))
-    {
-      BUTTON_TAMPER_GPIO_CLK_ENABLE();
-    }
-  }
-  else if (Button == BUTTON_USER1 && !(BUTTON_USER1_GPIO_IS_CLK_ENABLE()))
-  {
-    if (IS_DEVELOPER_BOOT_MODE())
-    {
-      HAL_PWR_EnableBkUpD3Access();
-      HAL_PWREx_EnableSupply(PWR_PVM_VDDIO3);
-    }
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(93)))
-    {
-      BUTTON_USER1_GPIO_CLK_ENABLE();
-    }
-  }
-  else if (Button == BUTTON_USER2 && !(BUTTON_USER2_GPIO_IS_CLK_ENABLE()))
-  {
-    if (RESMGR_STATUS_ACCESS_OK == ResMgr_Request(RESMGR_RESOURCE_RIF_RCC, RESMGR_RCC_RESOURCE(96)))
-    {
-      BUTTON_USER2_GPIO_CLK_ENABLE();
-    }
-  }
-
-  if (!IS_DEVELOPER_BOOT_MODE())
-  {
-    if ((button == BUTTON_WAKEUP_GPIO_PORT && pin == BUTTON_WAKEUP_PIN
-         && ResMgr_Request(BUTTON_WAKEUP_RIF_RES_TYP_GPIO, BUTTON_WAKEUP_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_TAMPER_GPIO_PORT && pin == BUTTON_TAMPER_PIN && \
-            ResMgr_Request(BUTTON_TAMPER_RIF_RES_TYP_GPIO, BUTTON_TAMPER_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_USER1_GPIO_PORT && pin == BUTTON_USER1_PIN && \
-            ResMgr_Request(BUTTON_USER1_RIF_RES_TYP_GPIO, BUTTON_USER1_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_USER2_GPIO_PORT && pin == BUTTON_USER2_PIN && \
-            ResMgr_Request(BUTTON_USER2_RIF_RES_TYP_GPIO, BUTTON_USER2_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
-    {
-      ret = BSP_ERROR_MSP_FAILURE;
-    }
-  }
-  return ret;
-}
-
-/**
-  * @brief  MspDeInit BUTTONs.
-  * @param  Button BUTTON to be configured.
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_WAKEUP: Wakeup Push Button
-  *            @arg  BUTTON_TAMPER: Tamper Push Button
-  *            @arg  BUTTON_USER1 : User1 Push Button
-  *            @arg  BUTTON_USER2 : User2 Push Button
-  * @retval int32_t
-  */
-static int32_t BSP_PB_MspDeInit(Button_TypeDef Button)
-{
-  int32_t ret = BSP_ERROR_NONE;
-  GPIO_TypeDef *button = BUTTON_PORT[Button];
-  uint16_t pin = BUTTON_PIN[Button];
-
-  if (!IS_DEVELOPER_BOOT_MODE())
-  {
-    if ((button == BUTTON_WAKEUP_GPIO_PORT && pin == BUTTON_WAKEUP_PIN
-         && ResMgr_Release(BUTTON_WAKEUP_RIF_RES_TYP_GPIO, BUTTON_WAKEUP_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_TAMPER_GPIO_PORT && pin == BUTTON_TAMPER_PIN && \
-            ResMgr_Release(BUTTON_TAMPER_RIF_RES_TYP_GPIO, BUTTON_TAMPER_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_USER1_GPIO_PORT && pin == BUTTON_USER1_PIN && \
-            ResMgr_Release(BUTTON_USER1_RIF_RES_TYP_GPIO, BUTTON_USER1_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK)
-        || (button == BUTTON_USER2_GPIO_PORT && pin == BUTTON_USER2_PIN && \
-            ResMgr_Release(BUTTON_USER2_RIF_RES_TYP_GPIO, BUTTON_USER2_RIF_RES_NUM_GPIO) != RESMGR_STATUS_ACCESS_OK))
-    {
-      ret = BSP_ERROR_MSP_FAILURE;
-    }
-  }
-  return ret;
-}
-
-/**
-  * @brief  Configures button GPIO and EXTI Line.
-  * @param  Button Button to be configured
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_WAKEUP: Wakeup Push Button
-  * @param  ButtonMode Button mode
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_MODE_GPIO: Button will be used as simple IO
-  *            @arg  BUTTON_MODE_EXTI: Button will be connected to EXTI line
-  *                                    with interrupt generation capability
-  * @retval BSP status
-  */
-int32_t  BSP_PB_Init(Button_TypeDef Button, ButtonMode_TypeDef ButtonMode)
-{
-  GPIO_InitTypeDef gpio_init_structure;
-  static BSP_EXTI_LineCallback ButtonCallback[BUTTONn] = {BUTTON_WAKEUP_EXTI_Callback, BUTTON_USER1_EXTI_Callback,
-                                                          BUTTON_USER2_EXTI_Callback, BUTTON_TAMPER_EXTI_Callback
-                                                         };
-  static uint32_t  BSP_BUTTON_PRIO [BUTTONn] = {BSP_BUTTON_WAKEUP_IT_PRIORITY, BSP_BUTTON_USER_IT_PRIORITY,
-                                                BSP_BUTTON_USER_IT_PRIORITY, BSP_BUTTON_TAMPER_IT_PRIORITY
-                                               };
-  static const uint32_t BUTTON_EXTI_LINE[BUTTONn] = {BUTTON_WAKEUP_EXTI_LINE, BUTTON_USER1_EXTI_LINE,
-                                                     BUTTON_USER2_EXTI_LINE, BUTTON_TAMPER_EXTI_LINE
-                                                    };
-
-  /*BSP PB Msp Init Configuration*/
-  if (BSP_PB_MspInit(Button) != BSP_ERROR_NONE)
-  {
-    return BSP_ERROR_MSP_FAILURE;
-  }
-
-  gpio_init_structure.Pin = BUTTON_PIN [Button];
-  gpio_init_structure.Pull = GPIO_NOPULL;
-  gpio_init_structure.Speed = GPIO_SPEED_FREQ_HIGH;
-
-  if (Button == BUTTON_TAMPER)
-  {
-    gpio_init_structure.Pull = GPIO_PULLUP;
-  }
-
-  if (ButtonMode == BUTTON_MODE_GPIO)
-  {
-    /* Configure Button pin as input */
-    gpio_init_structure.Mode = GPIO_MODE_INPUT;
-    HAL_GPIO_Init(BUTTON_PORT [Button], &gpio_init_structure);
-  }
-  else /* (ButtonMode == BUTTON_MODE_EXTI) */
-  {
-    /* Configure Button pin as input with External interrupt */
-    gpio_init_structure.Mode = GPIO_MODE_IT_RISING;
-
-    HAL_GPIO_Init(BUTTON_PORT[Button], &gpio_init_structure);
-
-    (void)HAL_EXTI_GetHandle(&hpb_exti[Button], BUTTON_EXTI_LINE[Button]);
-    (void)HAL_EXTI_RegisterCallback(&hpb_exti[Button],  HAL_EXTI_COMMON_CB_ID, ButtonCallback[Button]);
-
-    /* Enable and set Button EXTI Interrupt to the lowest priority */
-#if defined(CORE_CA35)
-    IRQ_SetPriority((BUTTON_IRQn[Button]), BSP_BUTTON_PRIO[Button]);
-    IRQ_Enable((BUTTON_IRQn[Button]));
-#else
-    HAL_NVIC_SetPriority((BUTTON_IRQn[Button]), BSP_BUTTON_PRIO[Button], 0x00);
-    HAL_NVIC_EnableIRQ((BUTTON_IRQn[Button]));
-#endif /* CORE_CA35 */
-  }
-  return BSP_ERROR_NONE;
-}
-
-/**
-  * @brief  Push Button DeInit.
-  * @param  Button Button to be configured
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_WAKEUP: Wakeup Push Button
-  * @note PB DeInit does not disable the GPIO clock
-  * @retval BSP status
-  */
-int32_t BSP_PB_DeInit(Button_TypeDef Button)
-{
-  GPIO_InitTypeDef gpio_init_structure;
-
-  gpio_init_structure.Pin = BUTTON_PIN[Button];
-#if defined(CORE_CA35)
-  IRQ_Disable((IRQn_Type)(BUTTON_IRQn[Button]));
-#else
-  HAL_NVIC_DisableIRQ((IRQn_Type)(BUTTON_IRQn[Button]));
-#endif /* CORE_CA35 */
-  HAL_GPIO_DeInit(BUTTON_PORT[Button], gpio_init_structure.Pin);
-
-  /* BSP PB  MSP DeInit configuration*/
-  if (BSP_PB_MspDeInit(Button) != BSP_ERROR_NONE)
-  {
-    return BSP_ERROR_MSP_FAILURE;
-  }
-
-  return BSP_ERROR_NONE;
-}
-
-/**
-  * @brief  Returns the selected button state.
-  * @param  Button Button to be checked
-  *          This parameter can be one of the following values:
-  *            @arg  BUTTON_WAKEUP: Wakeup Push Button
-  * @retval The Button GPIO pin value
-  */
-int32_t BSP_PB_GetState(Button_TypeDef Button)
-{
-  return HAL_GPIO_ReadPin(BUTTON_PORT[Button], BUTTON_PIN[Button]);
-}
-
-/**
-  * @brief  This function handles Push-Button interrupt requests.
-  * @param  Button Specifies the pin connected EXTI line
-  * @retval None
-  */
-void BSP_PB_IRQHandler(Button_TypeDef Button)
-{
-  HAL_EXTI_IRQHandler(&hpb_exti[Button]);
-}
-
-/**
-  * @brief  KEY EXTI line detection callbacks.
-  * @retval None
-  */
-static void BUTTON_WAKEUP_EXTI_Callback(void)
-{
-  BSP_PB_Callback(BUTTON_WAKEUP);
-}
-/**
-  * @brief  KEY EXTI line detection callbacks.
-  * @retval None
-  */
-static void BUTTON_USER1_EXTI_Callback(void)
-{
-  BSP_PB_Callback(BUTTON_USER1);
-}
-/**
-  * @brief  KEY EXTI line detection callbacks.
-  * @retval None
-  */
-static void BUTTON_USER2_EXTI_Callback(void)
-{
-  BSP_PB_Callback(BUTTON_USER2);
-}
-/**
-  * @brief  KEY EXTI line detection callbacks.
-  * @retval None
-  */
-static void BUTTON_TAMPER_EXTI_Callback(void)
-{
-  BSP_PB_Callback(BUTTON_TAMPER);
-}
-/**
-  * @brief  BSP Push Button callback
-  * @param  Button Specifies the pin connected EXTI line
-  * @retval None.
-  */
-__weak void BSP_PB_Callback(Button_TypeDef Button)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(Button);
-  /* This function should be implemented by the user application.
-  It is called into this driver when an event on Button is triggered. */
-}
 #endif /* defined (CORE_CA35) || defined (CORE_CM33) */
 
 #if (USE_BSP_COM_FEATURE > 0)
